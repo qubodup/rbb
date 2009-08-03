@@ -222,8 +222,11 @@ function draw()
 	love.graphics.draw("Soldier & tank by clasic_traveller_diehard (cc0/pd)\
 PixAntiqua font by Gerhard Grossmann (ofl)\
 Code, sounds & bull by qubodup (cc0/pd)\
-March music by c418 (??)\
+March music by c418 (sa3+)\
 ", 396, 88)
+	-- ofl is open font license
+	-- cc0/pd is creative commons zero/public domain
+	-- sa3+ is creative commons attributioon-sharealike 3.0 or later
 	
 	-- Ground
 	love.graphics.setColor(colors.green)
