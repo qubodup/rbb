@@ -219,7 +219,7 @@ function draw()
 	love.graphics.setFont(fonts.small)
 	love.graphics.draw("Arrwos & Space to Bombard!\nScore: " .. score, 64, 96)
 	love.graphics.setFont(fonts.tiny)
-	love.graphics.draw("Soldier & tank by clasic_traveller_diehard (cc0/pd)\
+	love.graphics.draw("Soldier, tank & plane by clasic_traveller_diehard (cc0/pd)\
 PixAntiqua font by Gerhard Grossmann (ofl)\
 Code, sounds & bull by qubodup (cc0/pd)\
 March music by c418 (sa3+)\
