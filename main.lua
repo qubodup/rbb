@@ -141,10 +141,9 @@ function load()
 	end
 	-- Player and bulls
 	player = {
-		coords		= {320,240},
+		coords		= {conf.screen[1]/2, conf.screen[2]/4},
         direction	= {1,0},
         speed		= 100,
-        spritesize	= { 17, 33 },
 	}
 	
 
@@ -157,23 +156,23 @@ function enemy_update(dt)
 
 	animations.soldier.left:update(dt)
 
-	for i=1,#soldiers do
+	for u,v in pairs(soldiers) do
 	
-		soldiers[i].coords[1] = soldiers[i].coords[1] + soldiers[i].direction[1] * soldiers[i].speed * dt
-		soldiers[i].coords[2] = soldiers[i].coords[2] + soldiers[i].direction[2] * soldiers[i].speed * dt
+		v.coords[1] = v.coords[1] + v.direction[1] * v.speed * dt
+		v.coords[2] = v.coords[2] + v.direction[2] * v.speed * dt
 
 		-- border
-		if soldiers[i].coords[1] > 790 then
-			soldiers[i].direction[1] = -1
+		if v.coords[1] > conf.screen[1] - 10 then
+			v.direction[1] = -1
 		end
-		if soldiers[i].coords[1] <  10 then
-			soldiers[i].direction[1] = 1
+		if v.coords[1] <  10 then
+			v.direction[1] = 1
 		end
-		if soldiers[i].coords[2] > 590 then
-			soldiers[i].direction[2] = -1
+		if v.coords[2] > conf.screen[2] - 10 then
+			v.direction[2] = -1
 		end
-		if soldiers[i].coords[2] < 310 then
-			soldiers[i].direction[2] = 1
+		if v.coords[2] < conf.screen[2]/2 + 10 then
+			v.direction[2] = 1
 		end
 	end
 end
@@ -185,28 +184,31 @@ function update(dt)
 end
 
 function bulls_update(delta)
-
+	
 	animations.bull.left:update(delta)
 
+	-- Dropping new bulls
 	if keydown.space == true and conf.reload_time > 1 then
 		create_bull()
 		conf.reload_time = 0
-		love.audio.play(sounds.moo)
 	end
+
 	for u,v in pairs(bulls) do
 		for w,x in pairs(soldiers) do
 			if x.coords[1] <= v.coords[1] + 4 and x.coords[1] >= v.coords[1] - 4 and x.coords[2] <= v.coords[2] + 4 and x.coords[2] >= v.coords[2] - 4 and v.running == true then
 				soldier_kill(w)
 			end
-			if v.coords[2] <= v.aim then
+			-- Bull landing (start running)
+			if v.coords[2] >= v.aim and v.running == false then
 				v.coords[2] = v.aim
 				v.running = true
+				love.audio.play(sounds.moo)
 			end
 		end
 		if v.running == true then
 			v.coords[1] = v.coords[1] - delta*v.speed
 			v.speed = v.speed + .5
-		else v.coords[2] = v.coords[2] - delta.v.fallspeed
+		else v.coords[2] = v.coords[2] + delta*v.fallspeed
 		end
 		if v.coords[1] < -10 then
 			table.remove(bulls,u)
@@ -218,22 +220,21 @@ function bulls_update(delta)
 end
 
 function create_bull()
-	num = #bulls + 1
-	bulls[num] = {
-			coords = { player.coords[1], player.coords[2] },
-			direction = { -1},
-			speed = 40,
-			fallspeed = 80,
-			running = false,
-			aim = player.coords[2]+300,
-		}
+	bulls[#bulls+1] = {
+		coords = { player.coords[1], player.coords[2] },
+		direction = { -1},
+		speed = 40,
+		fallspeed = 200,
+		running = false,
+		aim = player.coords[2] + conf.screen[2]/2,
+	}
 end
 
 function player_update(dt)
-	if  keydown.right == true and player.coords[1] < 790 then player.coords[1] = player.coords[1] + dt * player.speed end
+	if  keydown.right == true and player.coords[1] < conf.screen[1]-10 then player.coords[1] = player.coords[1] + dt * player.speed end
 	if  keydown.left  == true and player.coords[1] >  10 then player.coords[1] = player.coords[1] - dt * player.speed end
 	if  keydown.up    == true and player.coords[2] >  10 then player.coords[2] = player.coords[2] - dt * player.speed end
-	if  keydown.down  == true and player.coords[2] < 290 then player.coords[2] = player.coords[2] + dt * player.speed end
+	if  keydown.down  == true and player.coords[2] < conf.screen[2]/2 - 10 then player.coords[2] = player.coords[2] + dt * player.speed end
 end
 
 function draw()
