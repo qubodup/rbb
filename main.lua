@@ -22,9 +22,6 @@
 
 function load()
 
-	-- Resolution
-	screen = {800, 600}
-
 	-- Colors
 	colors = {
 		white = love.graphics.newColor(222,222,222),
@@ -64,13 +61,6 @@ function load()
 	
 	-- Entities
 	
-	player = {
-		coords		= {320,240},
-        direction	= {1,0},
-        speed		= 100,
-        spritesize	= { 17, 33 },
-	}
-	
 	-- Keys
 	keydown = {
 		up    = false,
@@ -79,7 +69,7 @@ function load()
 		right = false,
 		space = false,
 	}
-	
+	-- Image loading
 	images = {
 		plane = {
 			left = love.graphics.newImage("plane_left.png"),
@@ -88,38 +78,78 @@ function load()
 			down = love.graphics.newImage("plane_down.png"),
 		},
 		soldier = {
-			left = love.graphics.newImage("soldier_left.png")
+			left = love.graphics.newImage("soldier_left.png"),
+			right = love.graphics.newImage("soldier_right.png"),
+			up = love.graphics.newImage("soldier_up.png"),
+			down = love.graphics.newImage("soldier_down.png"),
+		},
+		tank = {
+			left = love.graphics.newImage("tank_left.png"),
+			right = love.graphics.newImage("tank_right.png"),
+			up = love.graphics.newImage("tank_up.png"),
+			down = love.graphics.newImage("tank_down.png"),
 		},
 		bull = {
-			left = love.graphics.newImage("bull_left.png")
+			left = love.graphics.newImage("bull_left.png"),
+			right = love.graphics.newImage("bull_right.png"),
+			up = love.graphics.newImage("bull_up.png"),
+			down = love.graphics.newImage("bull_down.png"),
 		}
 	}
-	
+
+	-- Animation baking
 	animations = {
 		plane = {
 		},
 		soldier = {
-			left = love.graphics.newAnimation(images.soldier.left, 8, 8, 0.120)
+			left = love.graphics.newAnimation(images.soldier.left, 8, 8, 0.120),
+			right = love.graphics.newAnimation(images.soldier.right, 8, 8, 0.120),
+			up = love.graphics.newAnimation(images.soldier.up, 8, 8, 0.120),
+			down = love.graphics.newAnimation(images.soldier.down, 8, 8, 0.120),
 		},
 		bull =  {
 			left = love.graphics.newAnimation(images.bull.left, 8, 8, 0.120)
 		},
+	}	
+
+	-- Parameters for customizing the game
+	conf = {
+		screen = {800, 600}, -- Screen resolution
+		amount_soldiers = 50,
+		amount_tanks = 25,
+		reload_time_needed = 1, -- Time between shots
+		reload_time = 0, -- Time since last shot
 	}
 	
-	soldier_count = 50
-
+	-- Units
 	soldiers = {}
-	for i = 1,soldier_count do
+	for i = 1,conf.amount_soldiers do
 		soldiers[i] = {
-			coords = { math.random( 10, screen[1] - 10 ), math.random( screen[2]/2 + 10, screen[2] - 10 ) },
+			coords = { math.random( 10, conf.screen[1] - 10 ), math.random( conf.screen[2]/2 + 10, conf.screen[2] - 10 ) },
 			direction = { math.random()*2-1, math.random()*2-1 },
 			speed = 10,
-			dead = false,
 		}
 	end
+
+	tanks = {}
+	for i = 1,conf.amount_tanks do
+		tanks[i] = {
+			coords = { math.random( 10, conf.screen[1] - 10 ), math.random( conf.screen[2]/2 + 10, conf.screen[2] - 10 ) },
+			direction = { math.random()*2-1, math.random()*2-1 },
+			speed = 10,
+		}
+	end
+	-- Player and bulls
+	player = {
+		coords		= {320,240},
+        direction	= {1,0},
+        speed		= 100,
+        spritesize	= { 17, 33 },
+	}
 	
+
 	bulls = {}
-	reload = 1
+	
 end
 
 
@@ -129,10 +159,6 @@ function enemy_update(dt)
 
 	for i=1,#soldiers do
 	
-		for i=1,#bulls do
-			if soldiers[i].coords[1] == bulls[i].coords[1] and bulls[i].running == true then soldier_kill(i) end
-		end
-
 		soldiers[i].coords[1] = soldiers[i].coords[1] + soldiers[i].direction[1] * soldiers[i].speed * dt
 		soldiers[i].coords[2] = soldiers[i].coords[2] + soldiers[i].direction[2] * soldiers[i].speed * dt
 
@@ -158,36 +184,36 @@ function update(dt)
 	bulls_update(dt)
 end
 
-function bulls_update(dt)
+function bulls_update(delta)
 
-	animations.bull.left:update(dt)
+	animations.bull.left:update(delta)
 
-	if keydown.space == true and reload > 1 then
+	if keydown.space == true and conf.reload_time > 1 then
 		create_bull()
-		reload = 0
+		conf.reload_time = 0
 		love.audio.play(sounds.moo)
 	end
-	for i,f in pairs(bulls) do
-		for j=1, #soldiers do
-			if soldiers[j].coords[1] <= bulls[i].coords[1] + 4 and soldiers[j].coords[1] >= bulls[i].coords[1] - 4 and soldiers[j].coords[2] <= bulls[i].coords[2] + 4 and soldiers[j].coords[2] >= bulls[i].coords[2] - 4 and bulls[i].running == true then
-				soldier_kill(j)
+	for u,v in pairs(bulls) do
+		for w,x in pairs(soldiers) do
+			if x.coords[1] <= v.coords[1] + 4 and x.coords[1] >= v.coords[1] - 4 and x.coords[2] <= v.coords[2] + 4 and x.coords[2] >= v.coords[2] - 4 and v.running == true then
+				soldier_kill(w)
 			end
-			if bulls[i].coords[2] <= bulls[i].aim then
-				bulls[i].coords[2] = bulls[i].aim
-				bulls[i].running = true
+			if v.coords[2] <= v.aim then
+				v.coords[2] = v.aim
+				v.running = true
 			end
 		end
-		if bulls[i].running == true then
-			bulls[i].coords[1] = bulls[i].coords[1] - dt*bulls[i].speed
-			bulls[i].speed = bulls[i].speed + .5
-		else bulls[i].coords[2] = bulls[i].coords[2] - dt.bulls[i].fallspeed
+		if v.running == true then
+			v.coords[1] = v.coords[1] - delta*v.speed
+			v.speed = v.speed + .5
+		else v.coords[2] = v.coords[2] - delta.v.fallspeed
 		end
-		if bulls[i].coords[1] < -10 then
-			table.remove(bulls,i)
+		if v.coords[1] < -10 then
+			table.remove(bulls,u)
 		end
 	end
-	if reload <= 1 then
-		reload = reload + dt
+	if conf.reload_time <= 1 then
+		conf.reload_time = conf.reload_time + delta
 	end
 end
 
@@ -248,23 +274,21 @@ March music by c418 (sa3+)\
 	end
 	
 	-- Soldiers
-	for i=1,#soldiers do
-		if soldiers[i].dead == false then love.graphics.draw(animations.soldier.left, math.floor(soldiers[i].coords[1] + 4), math.floor(soldiers[i].coords[2] + 4)) end
+	for v,u in pairs(soldiers) do
+		love.graphics.draw(animations.soldier.left, math.floor(u.coords[1] + 4), math.floor(u.coords[2] + 4))
 	end
 	
 	-- Bulls
-	for i=1,#bulls do
-		love.graphics.draw(animations.bull.left, math.floor(bulls[i].coords[1] + 4), math.floor(bulls[i].coords[2] + 4))
+	for v,u in pairs(bulls) do
+		love.graphics.draw(animations.bull.left, math.floor(u.coords[1] + 4), math.floor(u.coords[2] + 4))
 	end
 	
 end
 
-function soldier_kill(i)
-	if soldiers[i].dead == false then
-		score = score + 1
-		love.audio.play(sounds.ouch)
-	end
-	soldiers[i].dead = true
+function soldier_kill(soldier)
+	score = score + 1
+	love.audio.play(sounds.ouch)
+	table.remove(soldiers,soldier)
 end
 
 function keypressed(key)
