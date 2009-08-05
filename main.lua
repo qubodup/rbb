@@ -73,7 +73,7 @@ function load()
 	images = {
 		plane = {
 			left = love.graphics.newImage("plane_left.png"),
-			right = love.graphics.newImage("plane_left.png"),
+			right = love.graphics.newImage("plane_right.png"),
 			up = love.graphics.newImage("plane_up.png"),
 			down = love.graphics.newImage("plane_down.png"),
 		},
@@ -94,13 +94,13 @@ function load()
 			right = love.graphics.newImage("bull_right.png"),
 			up = love.graphics.newImage("bull_up.png"),
 			down = love.graphics.newImage("bull_down.png"),
-		}
+		},
+		grass = love.graphics.newImage("grass.png"),
 	}
 
 	-- Animation baking
 	animations = {
-		plane = {
-		},
+		plane = {}, -- none, probably
 		soldier = {
 			left = love.graphics.newAnimation(images.soldier.left, 8, 8, 0.120),
 			right = love.graphics.newAnimation(images.soldier.right, 8, 8, 0.120),
@@ -115,12 +115,23 @@ function load()
 	-- Parameters for customizing the game
 	conf = {
 		screen = {800, 600}, -- Screen resolution
+		amount_grass = 80, -- How much grass can there be?!
 		amount_soldiers = 50,
 		amount_tanks = 25,
 		reload_time_needed = 1, -- Time between shots
 		reload_time = 0, -- Time since last shot
 	}
+
+	-- Grass
 	
+	grass = {}
+
+	for i = 1,conf.amount_grass do
+		grass[i] = {
+			coords = { math.random( 10, conf.screen[1] - 10 ), math.random( conf.screen[2]/2 + 10, conf.screen[2] - 10 ) },
+		}
+	end
+
 	-- Units
 	soldiers = {}
 	for i = 1,conf.amount_soldiers do
@@ -194,28 +205,34 @@ function bulls_update(delta)
 	end
 
 	for u,v in pairs(bulls) do
+		
+		-- Check soldier hits
 		for w,x in pairs(soldiers) do
 			if x.coords[1] <= v.coords[1] + 4 and x.coords[1] >= v.coords[1] - 4 and x.coords[2] <= v.coords[2] + 4 and x.coords[2] >= v.coords[2] - 4 and v.running == true then
 				soldier_kill(w)
 			end
-			-- Bull landing (start running)
-			if v.coords[2] >= v.aim and v.running == false then
-				v.coords[2] = v.aim
-				v.running = true
-				love.audio.play(sounds.moo)
-			end
 		end
+		
+		-- Bull landing (start running)
+		if v.coords[2] >= v.aim and v.running == false then
+			v.coords[2] = v.aim
+			v.running = true
+			love.audio.play(sounds.moo)
+		end
+		
+		-- Running and falling
 		if v.running == true then
 			v.coords[1] = v.coords[1] - delta*v.speed
-			v.speed = v.speed + .5
-		else v.coords[2] = v.coords[2] + delta*v.fallspeed
+			v.speed = v.speed + .25
+		else
+			v.coords[2] = v.coords[2] + delta*v.fallspeed
+			v.fallspeed = v.fallspeed + .5
 		end
-		if v.coords[1] < -10 then
+		
+		-- Removing bulls out of rage
+		if v.coords[1] < -4 or v.coords[1] > conf.screen[1] + 4 or v.coords[2] > conf.screen[2] + 4 or v.coords[2] < conf.screen[2]/2 and v.running == true then
 			table.remove(bulls,u)
 		end
-	end
-	if conf.reload_time <= 1 then
-		conf.reload_time = conf.reload_time + delta
 	end
 end
 
@@ -230,11 +247,36 @@ function create_bull()
 	}
 end
 
-function player_update(dt)
-	if  keydown.right == true and player.coords[1] < conf.screen[1]-10 then player.coords[1] = player.coords[1] + dt * player.speed end
-	if  keydown.left  == true and player.coords[1] >  10 then player.coords[1] = player.coords[1] - dt * player.speed end
-	if  keydown.up    == true and player.coords[2] >  10 then player.coords[2] = player.coords[2] - dt * player.speed end
-	if  keydown.down  == true and player.coords[2] < conf.screen[2]/2 - 10 then player.coords[2] = player.coords[2] + dt * player.speed end
+function player_update(delta)
+
+	-- Keys and direction
+	if keydown.left == true then
+		player.direction[2] = 0 
+		player.direction[1] = -1
+	end
+	if keydown.right == true then
+		player.direction[2] = 0
+		player.direction[1] = 1
+	end
+	if keydown.up == true then
+		player.direction[1] = 0
+		player.direction[2] = -1
+	end
+	if keydown.down == true then
+		player.direction[1] = 0
+		player.direction[2] = 1
+	end
+
+	-- Movement
+	if  keydown.right == true and player.coords[1] < conf.screen[1]-10 then player.coords[1] = player.coords[1] + delta * player.speed end
+	if  keydown.left  == true and player.coords[1] >  10 then player.coords[1] = player.coords[1] - delta * player.speed end
+	if  keydown.up    == true and player.coords[2] >  10 then player.coords[2] = player.coords[2] - delta * player.speed end
+	if  keydown.down  == true and player.coords[2] < conf.screen[2]/2 - 10 then player.coords[2] = player.coords[2] + delta * player.speed end
+	
+	-- Reloading
+	if conf.reload_time <= 1 then
+		conf.reload_time = conf.reload_time + delta
+	end
 end
 
 function draw()
@@ -247,8 +289,8 @@ function draw()
 	love.graphics.draw("Arrwos & Space to Bombard!\nScore: " .. score, 64, 96)
 	love.graphics.setFont(fonts.tiny)
 	love.graphics.draw("Soldier, tank & plane by clasic_traveller_diehard (cc0/pd)\
+Code, sounds, grass & bull by qubodup (cc0/pd)\
 PixAntiqua font by Gerhard Grossmann (ofl)\
-Code, sounds & bull by qubodup (cc0/pd)\
 March music by c418 (sa3+)\
 ", 396, 88)
 	-- ofl is open font license
@@ -258,10 +300,15 @@ March music by c418 (sa3+)\
 	-- Ground
 	love.graphics.setColor(colors.green)
 	love.graphics.rectangle(0, 0, 300, 800, 300)
-	
-	-- Aim line
+
+	-- Grass
+	for v,u in pairs(grass) do
+		love.graphics.draw(images.grass, math.floor(u.coords[1] + 4), math.floor(u.coords[2] + 4))
+	end
+
+	-- Shadows
 	love.graphics.setColor(colors.white)
-	love.graphics.rectangle(0, 0, player.coords[2]+300, player.coords[1], 8)
+	love.graphics.rectangle(0, player.coords[1] - 4, player.coords[2] + conf.screen[2]/2 - 4, 8, 8)
 	
 	-- Plane
 	if player.direction[1] == 1 then
@@ -293,26 +340,18 @@ function soldier_kill(soldier)
 end
 
 function keypressed(key)
-	if     key == love.key_up     then
-		keydown.up    = true
-		player.direction[2] = -1
-	elseif key == love.key_down   then
-		keydown.down  = true
-		player.direction[2] = 1
-	elseif key == love.key_left   then
-		keydown.left  = true
-		player.direction[1] = -1
-	elseif key == love.key_right  then
-		keydown.right = true
-		player.direction[1] = 1
+	if key == love.key_up then keydown.up = true
+	elseif key == love.key_down then keydown.down = true
+	elseif key == love.key_left then keydown.left = true
+	elseif key == love.key_right then keydown.right = true
 	elseif key == love.key_space  then keydown.space = true
 	elseif key == love.key_escape then love.system.exit() end
 end
 
 function keyreleased(key)
-	if     key == love.key_up    then keydown.up    = false
-	elseif key == love.key_down  then keydown.down  = false
-	elseif key == love.key_left  then keydown.left  = false
+	if key == love.key_up then keydown.up = false
+	elseif key == love.key_down then keydown.down  = false
+	elseif key == love.key_left then keydown.left  = false
 	elseif key == love.key_right then keydown.right = false
 	elseif key == love.key_space then keydown.space = false end
 end
